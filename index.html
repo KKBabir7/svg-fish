@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monster Eating Fish</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #87CEEB;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<canvas id="water"></canvas>
+<script>
+  const canvas = document.getElementById("water");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  class Fish {
+    constructor(x, y, size, speed) {
+      this.x = x;
+      this.y = y;
+      this.size = size;
+      this.speed = speed;
+      this.directionX = Math.random() * 2 - 1;
+      this.directionY = Math.random() * 2 - 1;
+      this.eaten = false; // Check if the fish is eaten
+    }
+
+    draw() {
+      if (this.eaten) return;
+      // Body
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y, this.size * 2, this.size, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFA500";
+      ctx.fill();
+      ctx.closePath();
+
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(this.x - this.size * 2, this.y);
+      ctx.lineTo(this.x - this.size * 3, this.y - this.size);
+      ctx.lineTo(this.x - this.size * 3, this.y + this.size);
+      ctx.fillStyle = "#FF4500";
+      ctx.fill();
+      ctx.closePath();
+
+      // Eye
+      ctx.beginPath();
+      ctx.arc(this.x + this.size, this.y - this.size / 2, this.size / 4, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.arc(this.x + this.size + 2, this.y - this.size / 2, this.size / 8, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    update() {
+      if (this.eaten) return;
+      this.x += this.directionX * this.speed;
+      this.y += this.directionY * this.speed;
+
+      if (this.x + this.size * 2 > canvas.width || this.x - this.size * 2 < 0) {
+        this.directionX = -this.directionX;
+      }
+      if (this.y + this.size > canvas.height || this.y - this.size < 0) {
+        this.directionY = -this.directionY;
+      }
+
+      this.draw();
+    }
+  }
+
+  class Monster {
+    constructor(x, y, size, speed) {
+      this.x = x;
+      this.y = y;
+      this.size = size;
+      this.speed = speed;
+    }
+
+    draw() {
+      // Body
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = "#8B0000"; // Red body
+      ctx.fill();
+      ctx.closePath();
+
+      // Mouth (open)
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0.2 * Math.PI, 0.8 * Math.PI, false);
+      ctx.lineTo(this.x, this.y);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.closePath();
+
+      // Eyes
+      ctx.beginPath();
+      ctx.arc(this.x - this.size / 3, this.y - this.size / 3, this.size / 8, 0, Math.PI * 2);
+      ctx.fillStyle = "white";
+      ctx.fill();
+      ctx.closePath();
+
+      ctx.beginPath();
+      ctx.arc(this.x - this.size / 3 + 3, this.y - this.size / 3, this.size / 12, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    update(fishArray) {
+      // Follow the closest fish
+      let closestFish = null;
+      let closestDistance = Infinity;
+
+      fishArray.forEach(fish => {
+        if (!fish.eaten) {
+          const distance = Math.hypot(this.x - fish.x, this.y - fish.y);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestFish = fish;
+          }
+        }
+      });
+
+      if (closestFish) {
+        // Move towards the closest fish
+        const angle = Math.atan2(closestFish.y - this.y, closestFish.x - this.x);
+        this.x += Math.cos(angle) * this.speed;
+        this.y += Math.sin(angle) * this.speed;
+
+        // Check if the fish is eaten
+        if (closestDistance < this.size) {
+          closestFish.eaten = true;
+        }
+      }
+
+      this.draw();
+    }
+  }
+
+  let fishArray = [];
+  let monster;
+  const fishCount = 10;
+
+  function init() {
+    fishArray = [];
+    for (let i = 0; i < fishCount; i++) {
+      const size = Math.random() * 20 + 10;
+      const speed = Math.random() * 2 + 1;
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      fishArray.push(new Fish(x, y, size, speed));
+    }
+    monster = new Monster(canvas.width / 2, canvas.height / 2, 50, 2);
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let allEaten = true;
+    fishArray.forEach(fish => {
+      fish.update();
+      if (!fish.eaten) allEaten = false;
+    });
+
+    monster.update(fishArray);
+
+    if (allEaten) {
+      setTimeout(init, 2000); // Restart after 2 seconds
+    } else {
+      requestAnimationFrame(animate);
+    }
+  }
+
+  init();
+  animate();
+
+  window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    init();
+  });
+</script>
+</body>
+</html>
